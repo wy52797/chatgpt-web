@@ -29,8 +29,8 @@ export default {
   },
   chat: {
     newChatButton: '新建聊天',
-    placeholder: '来说点什么吧...（Shift + Enter = 换行）',
-    placeholderMobile: '来说点什么...',
+    placeholder: '输入/开启提示词',
+    placeholderMobile: '输入/开启提示词',
     copy: '复制',
     copied: '复制成功',
     copyCode: '复制代码',
@@ -71,7 +71,7 @@ export default {
     balance: 'API余额',
   },
   store: {
-    siderButton: '提示词商店',
+    siderButton: '提示词管理',
     local: '本地',
     online: '在线',
     title: '标题',
