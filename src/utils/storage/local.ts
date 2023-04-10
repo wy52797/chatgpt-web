@@ -23,11 +23,11 @@ export function createLocalStorage(options?: { expire?: number | null; crypto?: 
     }
 
     const json = crypto ? enCrypto(storageData) : JSON.stringify(storageData)
-    window.sessionStorage.setItem(key, json)
+    window.localStorage.setItem(key, json)
   }
 
   function get(key: string) {
-    const json = window.sessionStorage.getItem(key)
+    const json = window.localStorage.getItem(key)
     if (json) {
       let storageData: StorageData | null = null
 
@@ -50,11 +50,11 @@ export function createLocalStorage(options?: { expire?: number | null; crypto?: 
   }
 
   function remove(key: string) {
-    window.sessionStorage.removeItem(key)
+    window.localStorage.removeItem(key)
   }
 
   function clear() {
-    window.sessionStorage.clear()
+    window.localStorage.clear()
   }
 
   return {
@@ -65,6 +65,6 @@ export function createLocalStorage(options?: { expire?: number | null; crypto?: 
   }
 }
 
-export const ls = createLocalStorage()
+export const ls = createLocalStorage({ expire: 60 * 60 * 24, crypto: false })
 
 export const ss = createLocalStorage({ expire: null, crypto: false })
