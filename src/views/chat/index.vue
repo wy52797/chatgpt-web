@@ -14,7 +14,7 @@ import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { useChatStore, usePromptStore } from '@/store'
-import { fetchChatAPIProcess } from '@/api'
+import { fetchChatAPIProcess, getInfo } from '@/api'
 import { t } from '@/locales'
 
 let controller = new AbortController()
@@ -455,6 +455,7 @@ const footerClass = computed(() => {
 })
 
 onMounted(() => {
+  getInfo()
   scrollToBottom()
   if (inputRef.value && !isMobile.value)
     inputRef.value?.focus()

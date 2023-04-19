@@ -173,12 +173,12 @@ const importPromptTemplate = (from = 'online') => {
       let safe = true
       for (const j of promptList.value) {
         if (j.key === i[key]) {
-          message.warning(t('store.importRepeatTitle', { msg: i[key] }))
+          // message.warning(t('store.importRepeatTitle', { msg: i[key] }))
           safe = false
           break
         }
         if (j.value === i[value]) {
-          message.warning(t('store.importRepeatContent', { msg: i[key] }))
+          // message.warning(t('store.importRepeatContent', { msg: i[key] }))
           safe = false
           break
         }

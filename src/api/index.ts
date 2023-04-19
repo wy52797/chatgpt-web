@@ -49,3 +49,23 @@ export function fetchVerify<T>(token: string) {
     data: { token },
   })
 }
+
+export function register<T>(data: { name: string; password: string }) {
+  return post<T>({
+    url: '/register',
+    data,
+  })
+}
+
+export function login<T>(data: { name: string; password: string }) {
+  return post<T>({
+    url: '/login',
+    data,
+  })
+}
+
+export function getInfo<T>() {
+  return post<T>({
+    url: '/info',
+  })
+}
