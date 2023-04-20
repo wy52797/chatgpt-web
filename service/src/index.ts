@@ -14,24 +14,24 @@ const app = express()
 const router = express.Router()
 
 const jwtAuth = expressjwt({ secret: 'jwtSecret', algorithms: ['HS256'] }).unless({ path: ['/', '/login', '/register'] })
-const AppDataSource = new DataSource({
-  type: 'mysql',
-  host: 'localhost',
-  port: 3306,
-  username: 'root',
-  password: '123456',
-  database: 'test',
-  entities: [User],
-})
 // const AppDataSource = new DataSource({
 //   type: 'mysql',
-//   host: '172.17.0.1',
+//   host: 'localhost',
 //   port: 3306,
-//   username: 'gpt',
-//   password: '5t8LyM7XpZpYzrpH',
-//   database: 'gpt',
+//   username: 'root',
+//   password: '123456',
+//   database: 'test',
 //   entities: [User],
 // })
+const AppDataSource = new DataSource({
+  type: 'mysql',
+  host: '172.17.0.1',
+  port: 3306,
+  username: 'gpt',
+  password: '5t8LyM7XpZpYzrpH',
+  database: 'gpt',
+  entities: [User],
+})
 
 app.use(express.static('public'))
 app.use(express.json())
