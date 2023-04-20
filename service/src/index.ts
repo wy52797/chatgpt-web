@@ -13,7 +13,7 @@ import { User } from './entities/User'
 const app = express()
 const router = express.Router()
 
-const jwtAuth = expressjwt({ secret: 'jwtSecret', algorithms: ['HS256'] }).unless({ path: ['/login', '/register'] })
+const jwtAuth = expressjwt({ secret: 'jwtSecret', algorithms: ['HS256'] }).unless({ path: ['/', '/login', '/register'] })
 // const AppDataSource = new DataSource({
 //   type: 'mysql',
 //   host: 'localhost',
