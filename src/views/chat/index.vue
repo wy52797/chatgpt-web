@@ -13,7 +13,7 @@ import { useUsingContext } from './hooks/useUsingContext'
 import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useChatStore, usePromptStore } from '@/store'
+import { useChatStore, usePromptStore, useUserStore } from '@/store'
 import { fetchChatAPIProcess, getInfo } from '@/api'
 import { t } from '@/locales'
 
@@ -26,6 +26,7 @@ const dialog = useDialog()
 const ms = useMessage()
 
 const chatStore = useChatStore()
+const userStore = useUserStore()
 
 useCopyCode()
 
@@ -54,6 +55,11 @@ dataSources.value.forEach((item, index) => {
   if (item.loading)
     updateChatSome(+uuid, index, { loading: false })
 })
+
+async function getUserInfo() {
+  const res = await getInfo()
+  userStore.updateUserInfo({ name: res.data.name, gptTimes: res.data.gptTimes })
+}
 
 function handleSubmit() {
   onConversation()
@@ -203,6 +209,7 @@ async function onConversation() {
   }
   finally {
     loading.value = false
+    getUserInfo()
   }
 }
 
@@ -454,8 +461,8 @@ const footerClass = computed(() => {
   return classes
 })
 
-onMounted(() => {
-  getInfo()
+onMounted(async () => {
+  getUserInfo()
   scrollToBottom()
   if (inputRef.value && !isMobile.value)
     inputRef.value?.focus()
