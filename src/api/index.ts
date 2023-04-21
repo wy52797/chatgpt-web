@@ -69,3 +69,17 @@ export function getInfo<T>() {
     url: '/info',
   })
 }
+
+export function getUserList<T>(data) {
+  return post<T>({
+    url: '/list',
+    data,
+  })
+}
+
+export function addTimes<T>(data) {
+  return post<T>({
+    url: '/addTimes',
+    data,
+  })
+}

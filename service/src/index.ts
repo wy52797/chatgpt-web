@@ -151,7 +151,30 @@ router.post('/info', async (req, res) => {
   const name = req.auth.name
   const userRepository = AppDataSource.getRepository(User)
   const user = await userRepository.findOneBy({ name })
-  res.send({ status: 'Success', message: '', data: { user } })
+  res.send({ status: 'Success', message: '', data: { name: user.name, gptTimes: user.gpt_times } })
+})
+
+router.post('/list', async (req, res) => {
+  const authName = req.auth.name
+  if (authName !== 'admin')
+    return res.status(401).send('401')
+  const { pageNum, pageSize: take, name } = req.body
+  const skip = (pageNum - 1) * take
+  const userRepository = AppDataSource.getRepository(User)
+  const [items, count] = await userRepository.findAndCount({ skip, take, where: { name: name || null } })
+  res.send({ status: 'Success', message: '', data: { items, count } })
+})
+
+router.post('/addTimes', async (req, res) => {
+  const authName = req.auth.name
+  if (authName !== 'admin')
+    return res.status(401).send('401')
+  const { id, times } = req.body
+  const userRepository = AppDataSource.getRepository(User)
+  const user = await userRepository.findOneBy({ id })
+  user.gpt_times += times
+  await userRepository.save(user)
+  res.send({ status: 'Success', message: '操作成功', data: null })
 })
 app.use(jwtAuth)
 app.use('', router)
