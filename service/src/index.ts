@@ -8,6 +8,7 @@ import type { ChatMessage } from './chatgpt'
 import { chatConfig, chatReplyProcess, currentModel } from './chatgpt'
 import { auth } from './middleware/auth'
 import { isNotEmptyString } from './utils/is'
+import { getRandomString } from './utils/index'
 import { User } from './entities/User'
 
 const app = express()
@@ -176,6 +177,31 @@ router.post('/addTimes', async (req, res) => {
   await userRepository.save(user)
   res.send({ status: 'Success', message: '操作成功', data: null })
 })
+
+router.post('/generateAccount', async (req, res) => {
+  const authName = req.auth.name
+  if (authName !== 'admin')
+    return res.status(401).send('401')
+  for (let index = 0; index < 50; index++) {
+    const name = getRandomString()
+    const password = getRandomString()
+    const userRepository = AppDataSource.getRepository(User)
+
+    const existingUser = await userRepository.findOneBy({ name })
+    if (!existingUser) {
+    // 创建用户实体
+      const user = new User()
+      user.name = name
+      user.password = password
+      user.gpt_times = 80
+
+      // 保存用户到数据库
+      await userRepository.save(user)
+    }
+  }
+  res.send({ status: 'Success', message: '操作成功', data: null })
+})
+
 app.use(jwtAuth)
 app.use('', router)
 app.use('/api', router)

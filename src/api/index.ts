@@ -83,3 +83,9 @@ export function addTimes<T>(data) {
     data,
   })
 }
+
+export function generateAccount<T>() {
+  return post<T>({
+    url: '/generateAccount',
+  })
+}
