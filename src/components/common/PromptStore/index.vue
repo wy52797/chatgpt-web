@@ -1,9 +1,9 @@
 <script setup lang='ts'>
 import type { DataTableColumns } from 'naive-ui'
 import { computed, h, ref, watch } from 'vue'
-import { NButton, NDataTable, NInput, NList, NListItem, NModal, NPopconfirm, NSpace, NThing, useMessage } from 'naive-ui'
-// import PromptRecommend from '../../../assets/recommend.json'
-import Prompt from '../../../assets/prompts-zh.json'
+import { NButton, NCard, NDataTable, NDivider, NInput, NList, NListItem, NModal, NPopconfirm, NSpace, NTabPane, NTabs, NThing, useMessage } from 'naive-ui'
+import PromptRecommend from '../../../assets/recommend.json'
+import { SvgIcon } from '..'
 import { usePromptStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
@@ -47,7 +47,7 @@ const { isMobile } = useBasicLayout()
 const promptStore = usePromptStore()
 
 // Prompt在线导入推荐List,根据部署者喜好进行修改(assets/recommend.json)
-// const promptRecommendList = PromptRecommend
+const promptRecommendList = PromptRecommend
 const promptList = ref<any>(promptStore.promptList)
 
 // 用于添加修改的临时prompt参数
@@ -80,11 +80,11 @@ const changeShowModal = (mode: 'add' | 'modify' | 'local_import', selected = { k
 }
 
 // 在线导入相关
-// const downloadURL = ref('')
-// const downloadDisabled = computed(() => downloadURL.value.trim().length < 1)
-// const setDownloadURL = (url: string) => {
-//   downloadURL.value = url
-// }
+const downloadURL = ref('')
+const downloadDisabled = computed(() => downloadURL.value.trim().length < 1)
+const setDownloadURL = (url: string) => {
+  downloadURL.value = url
+}
 
 // 控制 input 按钮
 const inputStatus = computed (() => tempPromptKey.value.trim().length < 1 || tempPromptValue.value.trim().length < 1)
@@ -173,12 +173,12 @@ const importPromptTemplate = (from = 'online') => {
       let safe = true
       for (const j of promptList.value) {
         if (j.key === i[key]) {
-          // message.warning(t('store.importRepeatTitle', { msg: i[key] }))
+          message.warning(t('store.importRepeatTitle', { msg: i[key] }))
           safe = false
           break
         }
         if (j.value === i[value]) {
-          // message.warning(t('store.importRepeatContent', { msg: i[key] }))
+          message.warning(t('store.importRepeatContent', { msg: i[key] }))
           safe = false
           break
         }
@@ -186,7 +186,7 @@ const importPromptTemplate = (from = 'online') => {
       if (safe)
         promptList.value.unshift({ key: i[key], value: i[value] } as never)
     }
-    // message.success(t('common.importSuccess'))
+    message.success(t('common.importSuccess'))
   }
   catch {
     message.error('JSON 格式错误，请检查 JSON 格式')
@@ -213,8 +213,8 @@ const exportPromptTemplate = () => {
 const downloadPromptTemplate = async () => {
   try {
     importLoading.value = true
-    // const response = await fetch(downloadURL.value)
-    const jsonData = Prompt
+    const response = await fetch(downloadURL.value)
+    const jsonData = await response.json()
     if ('key' in jsonData[0] && 'value' in jsonData[0])
       tempPromptValue.value = JSON.stringify(jsonData)
     if ('act' in jsonData[0] && 'prompt' in jsonData[0]) {
@@ -227,11 +227,11 @@ const downloadPromptTemplate = async () => {
       tempPromptValue.value = JSON.stringify(newJsonData)
     }
     importPromptTemplate()
-    // downloadURL.value = ''
+    downloadURL.value = ''
   }
   catch {
     message.error(t('store.downloadError'))
-    // downloadURL.value = ''
+    downloadURL.value = ''
   }
   finally {
     importLoading.value = false
@@ -305,7 +305,6 @@ const createColumns = (): DataTableColumns<DataProps> => {
 }
 
 const columns = createColumns()
-downloadPromptTemplate()
 
 watch(
   () => promptList,
@@ -330,67 +329,119 @@ const dataSource = computed(() => {
 <template>
   <NModal v-model:show="show" style="width: 90%; max-width: 900px;" preset="card">
     <div class="space-y-4">
-      <div
-        class="flex gap-3 mb-4"
-        :class="[isMobile ? 'flex-col' : 'flex-row justify-between']"
-      >
-        <div class="flex items-center space-x-4">
-          <NButton
-            type="primary"
-            size="small"
-            @click="changeShowModal('add')"
+      <NTabs type="segment">
+        <NTabPane name="local" :tab="$t('store.local')">
+          <div
+            class="flex gap-3 mb-4"
+            :class="[isMobile ? 'flex-col' : 'flex-row justify-between']"
           >
-            {{ $t('common.add') }}
-          </NButton>
-          <NButton
-            size="small"
-            @click="changeShowModal('local_import')"
-          >
-            {{ $t('common.import') }}
-          </NButton>
-          <NButton
-            size="small"
-            :loading="exportLoading"
-            @click="exportPromptTemplate()"
-          >
-            {{ $t('common.export') }}
-          </NButton>
-          <NPopconfirm @positive-click="clearPromptTemplate">
-            <template #trigger>
-              <NButton size="small">
-                {{ $t('common.clear') }}
+            <div class="flex items-center space-x-4">
+              <NButton
+                type="primary"
+                size="small"
+                @click="changeShowModal('add')"
+              >
+                {{ $t('common.add') }}
               </NButton>
-            </template>
-            {{ $t('store.clearStoreConfirm') }}
-          </NPopconfirm>
-        </div>
-        <div class="flex items-center">
-          <NInput v-model:value="searchValue" style="width: 100%" />
-        </div>
-      </div>
-      <NDataTable
-        v-if="!isMobile"
-        :max-height="400"
-        :columns="columns"
-        :data="dataSource"
-        :pagination="pagination"
-        :bordered="false"
-      />
-      <NList v-if="isMobile" style="max-height: 400px; overflow-y: auto;">
-        <NListItem v-for="(item, index) of dataSource" :key="index">
-          <NThing :title="item.renderKey" :description="item.renderValue" />
-          <template #suffix>
-            <div class="flex flex-col items-center gap-2">
-              <NButton tertiary size="small" type="info" @click="changeShowModal('modify', item)">
-                {{ t('common.edit') }}
+              <NButton
+                size="small"
+                @click="changeShowModal('local_import')"
+              >
+                {{ $t('common.import') }}
               </NButton>
-              <NButton tertiary size="small" type="error" @click="deletePromptTemplate(item)">
-                {{ t('common.delete') }}
+              <NButton
+                size="small"
+                :loading="exportLoading"
+                @click="exportPromptTemplate()"
+              >
+                {{ $t('common.export') }}
               </NButton>
+              <NPopconfirm @positive-click="clearPromptTemplate">
+                <template #trigger>
+                  <NButton size="small">
+                    {{ $t('common.clear') }}
+                  </NButton>
+                </template>
+                {{ $t('store.clearStoreConfirm') }}
+              </NPopconfirm>
             </div>
-          </template>
-        </NListItem>
-      </NList>
+            <div class="flex items-center">
+              <NInput v-model:value="searchValue" style="width: 100%" />
+            </div>
+          </div>
+          <NDataTable
+            v-if="!isMobile"
+            :max-height="400"
+            :columns="columns"
+            :data="dataSource"
+            :pagination="pagination"
+            :bordered="false"
+          />
+          <NList v-if="isMobile" style="max-height: 400px; overflow-y: auto;">
+            <NListItem v-for="(item, index) of dataSource" :key="index">
+              <NThing :title="item.renderKey" :description="item.renderValue" />
+              <template #suffix>
+                <div class="flex flex-col items-center gap-2">
+                  <NButton tertiary size="small" type="info" @click="changeShowModal('modify', item)">
+                    {{ t('common.edit') }}
+                  </NButton>
+                  <NButton tertiary size="small" type="error" @click="deletePromptTemplate(item)">
+                    {{ t('common.delete') }}
+                  </NButton>
+                </div>
+              </template>
+            </NListItem>
+          </NList>
+        </NTabPane>
+        <NTabPane name="download" :tab="$t('store.online')">
+          <p class="mb-4">
+            {{ $t('store.onlineImportWarning') }}
+          </p>
+          <div class="flex items-center gap-4">
+            <NInput v-model:value="downloadURL" placeholder="" />
+            <NButton
+              strong
+              secondary
+              :disabled="downloadDisabled"
+              :loading="importLoading"
+              @click="downloadPromptTemplate()"
+            >
+              {{ $t('common.download') }}
+            </NButton>
+          </div>
+          <NDivider />
+          <div class="max-h-[360px] overflow-y-auto space-y-4">
+            <NCard
+              v-for="info in promptRecommendList"
+              :key="info.key" :title="info.key"
+              :bordered="true"
+              embedded
+            >
+              <p
+                class="overflow-hidden text-ellipsis whitespace-nowrap"
+                :title="info.desc"
+              >
+                {{ info.desc }}
+              </p>
+              <template #footer>
+                <div class="flex items-center justify-end space-x-4">
+                  <NButton text>
+                    <a
+                      :href="info.url"
+                      target="_blank"
+                    >
+                      <SvgIcon class="text-xl" icon="ri:link" />
+                    </a>
+                  </NButton>
+                  <NButton text @click="setDownloadURL(info.downloadUrl) ">
+                    <SvgIcon class="text-xl" icon="ri:add-fill" />
+                  </NButton>
+                </div>
+              </template>
+            </NCard>
+          </div>
+        </NTabPane>
+      </NTabs>
     </div>
   </NModal>
 

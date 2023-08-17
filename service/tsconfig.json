@@ -2,8 +2,7 @@
   "compilerOptions": {
     "target": "es2020",
     "lib": [
-      "esnext",
-      "es6"
+      "esnext"
     ],
     "allowJs": true,
     "skipLibCheck": true,
@@ -16,9 +15,7 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "outDir": "build",
-    "noEmit": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true
+    "noEmit": true
   },
   "exclude": [
     "node_modules",

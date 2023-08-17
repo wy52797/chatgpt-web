@@ -2,18 +2,13 @@
 import type { CSSProperties } from 'vue'
 import { computed, ref, watch } from 'vue'
 import { NButton, NLayoutSider } from 'naive-ui'
-import { useRouter } from 'vue-router'
 import List from './List.vue'
-import Footer from './Footer.vue'
-import { useAppStore, useChatStore, useUserStore } from '@/store'
+import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { PromptStore } from '@/components/common'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
-const userStore = useUserStore()
-const userInfo = computed(() => userStore.userInfo)
-const router = useRouter()
 
 const { isMobile } = useBasicLayout()
 const show = ref(false)
@@ -83,22 +78,17 @@ watch(
         <div class="flex-1 min-h-0 pb-4 overflow-hidden">
           <List />
         </div>
-        <div v-if="userInfo.name === 'admin'" class="p-4">
-          <NButton block @click="router.push('/admin')">
-            后台管理
-          </NButton>
-        </div>
-        <div class="p-4">
+        <!-- <div class="p-4">
           <NButton block @click="show = true">
             {{ $t('store.siderButton') }}
           </NButton>
-        </div>
+        </div> -->
       </main>
-      <Footer />
+      <!-- <Footer /> -->
     </div>
   </NLayoutSider>
   <template v-if="isMobile">
-    <div v-show="!collapsed" class="fixed inset-0 z-40 bg-black/40" @click="handleUpdateCollapsed" />
+    <div v-show="!collapsed" class="fixed inset-0 z-40 w-full h-full bg-black/40" @click="handleUpdateCollapsed" />
   </template>
   <PromptStore v-model:visible="show" />
 </template>

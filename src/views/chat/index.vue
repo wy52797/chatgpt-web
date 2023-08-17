@@ -8,13 +8,12 @@ import html2canvas from 'html2canvas'
 import { Message } from './components'
 import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
-import { useCopyCode } from './hooks/useCopyCode'
 import { useUsingContext } from './hooks/useUsingContext'
 import HeaderComponent from './components/Header/index.vue'
 import { HoverButton, SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useChatStore, usePromptStore, useUserStore } from '@/store'
-import { fetchChatAPIProcess, getInfo } from '@/api'
+import { useChatStore, usePromptStore } from '@/store'
+import { fetchChatAPIProcess } from '@/api'
 import { t } from '@/locales'
 
 let controller = new AbortController()
@@ -26,9 +25,6 @@ const dialog = useDialog()
 const ms = useMessage()
 
 const chatStore = useChatStore()
-const userStore = useUserStore()
-
-useCopyCode()
 
 const { isMobile } = useBasicLayout()
 const { addChat, updateChat, updateChatSome, getChatByUuidAndIndex } = useChat()
@@ -38,7 +34,7 @@ const { usingContext, toggleUsingContext } = useUsingContext()
 const { uuid } = route.params as { uuid: string }
 
 const dataSources = computed(() => chatStore.getChatByUuid(+uuid))
-const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !item.error)))
+const conversationList = computed(() => dataSources.value.filter(item => (!item.inversion && !!item.conversationOptions)))
 
 const prompt = ref<string>('')
 const loading = ref<boolean>(false)
@@ -55,11 +51,6 @@ dataSources.value.forEach((item, index) => {
   if (item.loading)
     updateChatSome(+uuid, index, { loading: false })
 })
-
-async function getUserInfo() {
-  const res = await getInfo()
-  userStore.updateUserInfo({ name: res.data.name, gptTimes: res.data.gptTimes })
-}
 
 function handleSubmit() {
   onConversation()
@@ -134,7 +125,7 @@ async function onConversation() {
               dataSources.value.length - 1,
               {
                 dateTime: new Date().toLocaleString(),
-                text: lastText + data.text ?? '',
+                text: lastText + (data.text ?? ''),
                 inversion: false,
                 error: false,
                 loading: true,
@@ -209,7 +200,6 @@ async function onConversation() {
   }
   finally {
     loading.value = false
-    getUserInfo()
   }
 }
 
@@ -240,7 +230,7 @@ async function onRegenerate(index: number) {
       error: false,
       loading: true,
       conversationOptions: null,
-      requestOptions: { prompt: message, ...options },
+      requestOptions: { prompt: message, options: { ...options } },
     },
   )
 
@@ -266,12 +256,12 @@ async function onRegenerate(index: number) {
               index,
               {
                 dateTime: new Date().toLocaleString(),
-                text: lastText + data.text ?? '',
+                text: lastText + (data.text ?? ''),
                 inversion: false,
                 error: false,
                 loading: true,
                 conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
-                requestOptions: { prompt: message, ...options },
+                requestOptions: { prompt: message, options: { ...options } },
               },
             )
 
@@ -315,7 +305,7 @@ async function onRegenerate(index: number) {
         error: true,
         loading: false,
         conversationOptions: null,
-        requestOptions: { prompt: message, ...options },
+        requestOptions: { prompt: message, options: { ...options } },
       },
     )
   }
@@ -461,8 +451,7 @@ const footerClass = computed(() => {
   return classes
 })
 
-onMounted(async () => {
-  getUserInfo()
+onMounted(() => {
   scrollToBottom()
   if (inputRef.value && !isMobile.value)
     inputRef.value?.focus()
@@ -480,7 +469,7 @@ onUnmounted(() => {
       v-if="isMobile"
       :using-context="usingContext"
       @export="handleExport"
-      @toggle-using-context="toggleUsingContext"
+      @handle-clear="handleClear"
     />
     <main class="flex-1 overflow-hidden">
       <div id="scrollRef" ref="scrollRef" class="h-full overflow-hidden overflow-y-auto">
@@ -513,7 +502,7 @@ onUnmounted(() => {
                   <template #icon>
                     <SvgIcon icon="ri:stop-circle-line" />
                   </template>
-                  Stop Responding
+                  {{ t('common.stopResponding') }}
                 </NButton>
               </div>
             </div>
@@ -524,7 +513,7 @@ onUnmounted(() => {
     <footer :class="footerClass">
       <div class="w-full max-w-screen-xl m-auto">
         <div class="flex items-center justify-between space-x-2">
-          <HoverButton @click="handleClear">
+          <HoverButton v-if="!isMobile" @click="handleClear">
             <span class="text-xl text-[#4f555e] dark:text-white">
               <SvgIcon icon="ri:delete-bin-line" />
             </span>
@@ -534,7 +523,7 @@ onUnmounted(() => {
               <SvgIcon icon="ri:download-2-line" />
             </span>
           </HoverButton>
-          <HoverButton v-if="!isMobile" @click="toggleUsingContext">
+          <HoverButton @click="toggleUsingContext">
             <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
               <SvgIcon icon="ri:chat-history-line" />
             </span>
@@ -545,7 +534,6 @@ onUnmounted(() => {
                 ref="inputRef"
                 v-model:value="prompt"
                 type="textarea"
-                :placeholder="placeholder"
                 :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }"
                 @input="handleInput"
                 @focus="handleFocus"

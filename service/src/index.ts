@@ -1,43 +1,17 @@
 import express from 'express'
-import 'reflect-metadata'
-import { DataSource } from 'typeorm'
-import jwt from 'jsonwebtoken'
-import { expressjwt } from 'express-jwt'
 import type { RequestProps } from './types'
 import type { ChatMessage } from './chatgpt'
 import { chatConfig, chatReplyProcess, currentModel } from './chatgpt'
 import { auth } from './middleware/auth'
+import { limiter } from './middleware/limiter'
 import { isNotEmptyString } from './utils/is'
-import { getRandomString } from './utils/index'
-import { User } from './entities/User'
 
 const app = express()
 const router = express.Router()
 
-const jwtAuth = expressjwt({ secret: 'jwtSecret', algorithms: ['HS256'] }).unless({ path: ['/', '/login', '/register'] })
-// const AppDataSource = new DataSource({
-//   type: 'mysql',
-//   host: 'localhost',
-//   port: 3306,
-//   username: 'root',
-//   password: '123456',
-//   database: 'test',
-//   entities: [User],
-// })
-const AppDataSource = new DataSource({
-  type: 'mysql',
-  host: '172.17.0.1',
-  port: 3306,
-  username: 'gpt',
-  password: '5t8LyM7XpZpYzrpH',
-  database: 'gpt',
-  entities: [User],
-})
-
 app.use(express.static('public'))
 app.use(express.json())
 
-AppDataSource.initialize()
 app.all('*', (_, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
   res.header('Access-Control-Allow-Headers', 'authorization, Content-Type')
@@ -45,18 +19,11 @@ app.all('*', (_, res, next) => {
   next()
 })
 
-router.post('/chat-process', async (req, res) => {
-  const name = req.auth.name
-  const userRepository = AppDataSource.getRepository(User)
-
-  const user = await userRepository.findOneBy({ name })
-  if (user.gpt_times <= 0)
-    return res.send({ status: 'Fail', message: '提问次数已用完，请联系客服', data: null })
-
+router.post('/chat-process', [auth, limiter], async (req, res) => {
   res.setHeader('Content-type', 'application/octet-stream')
 
   try {
-    const { prompt, options = {}, systemMessage } = req.body as RequestProps
+    const { prompt, options = {}, systemMessage, temperature, top_p } = req.body as RequestProps
     let firstChunk = true
     await chatReplyProcess({
       message: prompt,
@@ -66,6 +33,8 @@ router.post('/chat-process', async (req, res) => {
         firstChunk = false
       },
       systemMessage,
+      temperature,
+      top_p,
     })
   }
   catch (error) {
@@ -73,8 +42,6 @@ router.post('/chat-process', async (req, res) => {
   }
   finally {
     res.end()
-    user.gpt_times -= 1
-    await userRepository.save(user)
   }
 })
 
@@ -115,95 +82,8 @@ router.post('/verify', async (req, res) => {
   }
 })
 
-router.post('/register', async (req, res) => {
-  const { name, password } = req.body
-  const userRepository = AppDataSource.getRepository(User)
-
-  const existingUser = await userRepository.findOneBy({ name })
-  if (existingUser)
-    return res.send({ status: 'Fail', message: '用户名已存在', data: null })
-
-  // 创建用户实体
-  const user = new User()
-  user.name = name
-  user.password = password
-
-  // 保存用户到数据库
-  await userRepository.save(user)
-
-  // 创建JWT并返回200状态码和JWT
-  const token = jwt.sign({ name }, 'jwtSecret')
-  res.send({ status: 'Success', message: '注册成功', data: { token } })
-})
-
-router.post('/login', async (req, res) => {
-  const { name, password } = req.body
-  const userRepository = AppDataSource.getRepository(User)
-  const user = await userRepository.findOneBy({ name })
-  if (!user || password !== user.password)
-    return res.send({ status: 'Fail', message: '用户名或密码不正确', data: null })
-
-  // 创建JWT并返回
-  const token = jwt.sign({ name }, 'jwtSecret')
-  res.send({ status: 'Success', message: '登录成功', data: { token } })
-})
-
-router.post('/info', async (req, res) => {
-  const name = req.auth.name
-  const userRepository = AppDataSource.getRepository(User)
-  const user = await userRepository.findOneBy({ name })
-  res.send({ status: 'Success', message: '', data: { name: user.name, gptTimes: user.gpt_times } })
-})
-
-router.post('/list', async (req, res) => {
-  const authName = req.auth.name
-  if (authName !== 'admin')
-    return res.status(401).send('401')
-  const { pageNum, pageSize: take, name } = req.body
-  const skip = (pageNum - 1) * take
-  const userRepository = AppDataSource.getRepository(User)
-  const [items, count] = await userRepository.findAndCount({ skip, take, where: { name: name || null } })
-  res.send({ status: 'Success', message: '', data: { items, count } })
-})
-
-router.post('/addTimes', async (req, res) => {
-  const authName = req.auth.name
-  if (authName !== 'admin')
-    return res.status(401).send('401')
-  const { id, times } = req.body
-  const userRepository = AppDataSource.getRepository(User)
-  const user = await userRepository.findOneBy({ id })
-  user.gpt_times += times
-  await userRepository.save(user)
-  res.send({ status: 'Success', message: '操作成功', data: null })
-})
-
-router.post('/generateAccount', async (req, res) => {
-  const authName = req.auth.name
-  if (authName !== 'admin')
-    return res.status(401).send('401')
-  for (let index = 0; index < 50; index++) {
-    const name = getRandomString()
-    const password = getRandomString()
-    const userRepository = AppDataSource.getRepository(User)
-
-    const existingUser = await userRepository.findOneBy({ name })
-    if (!existingUser) {
-    // 创建用户实体
-      const user = new User()
-      user.name = name
-      user.password = password
-      user.gpt_times = 80
-
-      // 保存用户到数据库
-      await userRepository.save(user)
-    }
-  }
-  res.send({ status: 'Success', message: '操作成功', data: null })
-})
-
-app.use(jwtAuth)
 app.use('', router)
 app.use('/api', router)
 app.set('trust proxy', 1)
+
 app.listen(3002, () => globalThis.console.log('Server is running on port 3002'))
